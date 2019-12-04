@@ -10,27 +10,41 @@ namespace tutorialapi.Controllers
 {
     public class EmployeeController : ApiController
     {
-        public IEnumerable<Employee> Get()
+        public HttpResponseMessage Get(string gender="All")
         {
             using (EmployeeDBEntities entities = new EmployeeDBEntities())
             {
-                return entities.Employees.ToList();
+                switch (gender.ToLower()) {
+                    case "all":
+                        return Request.CreateResponse(HttpStatusCode.OK, entities.Employees.ToList());
+                    case "male":
+                        return Request.CreateResponse(HttpStatusCode.OK, 
+                            entities.Employees.Where(e => e.Gender.ToLower()=="male").ToList());
+                    case "female":
+                        return Request.CreateResponse(HttpStatusCode.OK,
+                            entities.Employees.Where(e => e.Gender.ToLower() == "female").ToList());
+                    default:
+                        return Request.CreateErrorResponse(HttpStatusCode.BadRequest,
+                            "value for gender :" + gender + " is invalid, accpetable values are male female or all ");
+
+                }
+
             }
         }
-
         public HttpResponseMessage Get(int id)
         {
             using (EmployeeDBEntities entities = new EmployeeDBEntities())
             {
-                var  entity= entities.Employees.FirstOrDefault(e => e.ID == id);
+                var entity = entities.Employees.FirstOrDefault(e => e.ID == id);
                 if (entity != null)
                 {
                     return Request.CreateResponse(HttpStatusCode.OK, entity);
 
                 }
-                else {
-                    return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Employee with id "+id+"not found");
-                        }
+                else
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Employee with id " + id + "not found");
+                }
             }
         }
         public HttpResponseMessage Post([FromBody] Employee emp)
@@ -43,36 +57,73 @@ namespace tutorialapi.Controllers
                     entities.SaveChanges();
 
                     var message = Request.CreateResponse(HttpStatusCode.Created, emp);
-                    message.Headers.Location = new Uri(Request.RequestUri + "/"+emp.ID.ToString());
+                    message.Headers.Location = new Uri(Request.RequestUri + "/" + emp.ID.ToString());
                     return message;
                 }
             }
 
-            catch (Exception ex){
-               return  Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
             }
-            
+
         }
-        public HttpResponseMessage Delete(int id) 
+        public HttpResponseMessage Delete(int id)
         {
-            try {
-                using (EmployeeDBEntities entity = new EmployeeDBEntities()) {
+            try
+            {
+                using (EmployeeDBEntities entity = new EmployeeDBEntities())
+                {
                     var lambdareturn = entity.Employees.FirstOrDefault(e => e.ID == id);
-                    if (lambdareturn != null) {
+                    if (lambdareturn != null)
+                    {
                         entity.Employees.Remove(lambdareturn);
                         entity.SaveChanges();
                         return Request.CreateResponse(HttpStatusCode.OK);
                     }
-                    else {
+                    else
+                    {
                         return Request.CreateErrorResponse(HttpStatusCode.NotFound,
-                            "Employee with id " + id.ToString() + "not found");
+                            "Employee with id " + id.ToString() + " not found");
                     }
                 }
 
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
             }
+        }
+        public HttpResponseMessage Put(int id, Employee employee)
+        {
+            try
+            {
+                using (EmployeeDBEntities dbEntities = new EmployeeDBEntities())
+                {
+                    var lambdaReturn = dbEntities.Employees.FirstOrDefault(e => e.ID == id);
+                    if (lambdaReturn == null)
+                    {
+                        return Request.CreateErrorResponse(HttpStatusCode.NotFound,
+                            "Employee with id " + id.ToString() + " not found");
+                    }
+                    else
+                    {
+                        lambdaReturn.FirstName = employee.FirstName;
+                        lambdaReturn.LastName = employee.LastName;
+                        lambdaReturn.Gender = employee.Gender;
+                        lambdaReturn.Salary = employee.Salary;
+
+                        dbEntities.SaveChanges();
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+            }
+
         }
     }
 }
